@@ -361,9 +361,12 @@ function update(dt: number): void {
   synth.update(dt);
 }
 
+const toScreen = (x: number, y: number, out: { x: number; y: number }) => camera.toScreen(x, y, out);
+
 function render(alpha: number): void {
   const dpr = world.dpr;
-  g.setTransform(dpr, 0, 0, dpr, 0, 0);
+  // The world draws in the camera's view space (turned sideways on landscape screens)...
+  camera.worldTransform(g, dpr);
   const a = Math.max(0, Math.min(1, alpha));
   const px = prevX + (sim.x - prevX) * a;
   const py = prevY + (sim.y - prevY) * a;
@@ -379,7 +382,9 @@ function render(alpha: number): void {
     hint: screen === 'title' ? 1 : screen === 'play' && !sim.started ? Math.max(0, 1 - screenT / 4) : 0,
     reducedMotion,
   });
-  world.floaters.draw(g, (x) => camera.sx(x), (y) => camera.sy(y), Math.max(0.8, Math.min(1.4, Math.min(cssW, cssH) / 420)), FONT);
+  // ...while text and UI always draw upright in screen space.
+  g.setTransform(dpr, 0, 0, dpr, 0, 0);
+  world.floaters.draw(g, toScreen, Math.max(0.8, Math.min(1.4, Math.min(cssW, cssH) / 420)), FONT);
   ui.draw(g, cssW, cssH, {
     screen,
     mode,

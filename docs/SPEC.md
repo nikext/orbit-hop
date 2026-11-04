@@ -114,7 +114,9 @@ differ from this spec, the official pages win; record the difference in
   English.
 - **Layout:** works at **any aspect ratio** (portrait phone, landscape
   desktop, square) and any resize. No orientation lock. Touch, mouse, and
-  keyboard all work. No hover-only UI.
+  keyboard all work. No hover-only UI. On landscape screens (wider than
+  1.2:1) the world view turns a quarter turn so the column runs left to right
+  and fills the screen; text and UI stay upright.
 - **Bundle:** initial load well under 1 MB (target under 300 KB gzipped);
   every file under 512 KiB; only relative paths (`vite` `base: './'`); file
   names `[A-Za-z0-9_.-]` only; no absolute URLs other than the SDK script.

@@ -5,6 +5,7 @@
  *
  *   npm run shots                 # all sizes and states -> shots/
  *   npm run shots -- --only 390x844
+ *   npm run shots -- --only 1600x450   # any size works for a spot check
  *
  * Uses the Vite dev server (dev flags are only available there) and
  * `vite preview` for the production smoke test (run `npm run build` first,
@@ -42,7 +43,8 @@ const server = await createServer({ logLevel: 'error', server: { port: 5199, str
 await server.listen();
 const base = server.resolvedUrls.local[0];
 
-const browser = await chromium.launch();
+// CHROMIUM_PATH lets a machine with a preinstalled Chromium use it instead of Playwright's download.
+const browser = await chromium.launch(process.env.CHROMIUM_PATH ? { executablePath: process.env.CHROMIUM_PATH } : {});
 const problems = [];
 
 const OFFLINE_SDK = 'window.ytgame={IN_PLAYABLES_ENV:false,SDK_VERSION:"shots"};';
@@ -103,8 +105,11 @@ async function openPage(w, h, url, label, sdkBody = OFFLINE_SDK) {
   return page;
 }
 
+// --only also takes a size that isn't in the list, for spot checks (e.g. --only 1600x450).
+const custom = only && /^\d+x\d+$/.test(only) && !SIZES.some(([w, h]) => only === `${w}x${h}`) ? [only.split('x').map(Number)] : [];
+
 let count = 0;
-for (const [w, h] of SIZES) {
+for (const [w, h] of [...SIZES, ...custom]) {
   if (only && only !== `${w}x${h}`) continue;
   for (const [name, query] of STATES) {
     const label = `${w}x${h}-${name}`;

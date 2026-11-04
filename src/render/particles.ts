@@ -195,7 +195,10 @@ export class Floaters {
     this.life.fill(0);
   }
 
-  draw(g: CanvasRenderingContext2D, sx: (x: number) => number, sy: (y: number) => number, ui: number, font: string): void {
+  private readonly pt = { x: 0, y: 0 };
+
+  /** Draws in screen space, upright; `toScreen` maps a world point to screen CSS pixels. */
+  draw(g: CanvasRenderingContext2D, toScreen: (x: number, y: number, out: { x: number; y: number }) => void, ui: number, font: string): void {
     g.save();
     g.textAlign = 'center';
     g.textBaseline = 'middle';
@@ -204,8 +207,9 @@ export class Floaters {
       if (life <= 0) continue;
       const t = 1 - life / this.maxLife[i]!;
       const pop = t < 0.15 ? 0.6 + (t / 0.15) * 0.55 : 1.15 - Math.min(0.15, (t - 0.15) * 0.6);
-      const x = sx(this.x[i]!);
-      const y = sy(this.y[i]!) - (20 + t * 34) * ui;
+      toScreen(this.x[i]!, this.y[i]!, this.pt);
+      const x = this.pt.x;
+      const y = this.pt.y - (20 + t * 34) * ui;
       g.globalAlpha = t > 0.7 ? (1 - t) / 0.3 : 1;
       const size = this.size[i]! * ui * pop;
       g.font = `800 ${size.toFixed(1)}px ${font}`;
