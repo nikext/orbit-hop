@@ -3,3 +3,4 @@ dist/
 *.zip
 shots/
 test-results/
+playwright-report/
