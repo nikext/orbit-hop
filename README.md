@@ -34,6 +34,11 @@ game is **~57 KiB (~21 KiB gzipped)** in two files.
   strong pull).
 - **Modes.** *Daily #N* is seeded by the UTC date and the same for everyone. Your first attempt
   is scored and later ones are practice. *Endless* uses a random seed and chases your best.
+- **Any screen shape.** Portrait and square screens show the column upright. On landscape
+  screens (wider than 1.2:1) the world turns a quarter turn so the column runs left to right
+  and fills the screen: on an 844×390 phone, planets are ~18% bigger and you see ~1.8× more of
+  the route ahead than an upright column would allow. Text and UI stay upright, and rotating
+  the device mid-run keeps the run going.
 - **Feel.** A fixed 120 Hz deterministic sim with interpolated rendering. Input edges are queued,
   so even a sub-frame tap registers. Death breaks the probe into shards, and the restart is one
   tap with no menus.
@@ -77,6 +82,11 @@ YouTube (local dev, the GitHub Pages demo).
 
 Outside Playables the adapter uses localStorage for saves, the browser language, and
 `visibilitychange` for pause. Inside Playables it uses none of these, as certification requires.
+**Not yet tested inside YouTube.** The integration has only been checked against a recording
+fake of the SDK (`npm run shots`), not in Google's Playables test suite or on a phone in the
+YouTube app. The checklist for that pass is in
+[`docs/CERTIFICATION.md`](docs/CERTIFICATION.md#still-to-verify-inside-youtube).
+
 Requirement-by-requirement status, with how each one was verified, is in
 [`docs/CERTIFICATION.md`](docs/CERTIFICATION.md).
 

@@ -90,7 +90,7 @@ what the game does about each.
 | STAB-6.3 | MUST NOT | Crash the YouTube app, site or other software. | Canvas 2D only; DPR capped at 2. | code |
 | STAB-7.1 | MUST | Standards-compliant web APIs. | Canvas 2D and WebAudio, nothing else. | code |
 | STAB-7.2 | MUST | Work in all browsers YouTube supports. | ES2020 target, no experimental APIs. Optional APIs (`letterSpacing`, `visualViewport`, `matchMedia`) are feature-guarded, and there's a `webkitAudioContext` fallback. | code; smoke (Chromium) |
-| STAB-7.3 | MUST | Work in the YouTube app on Android and iOS. | Touch input via Pointer Events, `touch-action: none`, safe-area insets, and no orientation lock. | shots (phone sizes); **needs a device test in the Playables test suite** |
+| STAB-7.3 | MUST | Work in the YouTube app on Android and iOS. | Touch input via Pointer Events, `touch-action: none`, safe-area insets, and no orientation lock. | shots (phone sizes); **not yet verified: needs the test suite and real devices (see below)** |
 | STAB-8.1 | MUST | Only relative paths to bundle files. | Vite `base: './'`. | bundle |
 | STAB-8.2 | MUST NOT | Absolute paths. | None, apart from the SDK URL, which is required. | bundle |
 | STAB-9.1 | MUST | File names only `[A-Za-z0-9_.-]`. | `game-<hash>.js`, `index.html`. | bundle |
@@ -100,9 +100,9 @@ what the game does about each.
 
 | ID | Level | Requirement | How it's met | Verified |
 |---|---|---|---|---|
-| DES-1.1 | MUST | Responsive: playable at all aspect ratios, adapting on viewport change. | The camera fits the play column horizontally and keeps a minimum world height visible. UI is laid out from the viewport size, and resizing keeps the game state. | shots (390×844, 844×390, 1280×720, 800×800, plus a live resize in the prod smoke test) |
-| DES-1.2 | SHOULD | Fill the viewport. | The starfield and background always fill it; the play column is centred. | shots |
-| DES-1.2a | MUST | If not filling, centre with pillar/letterbox. | The column is centred and the sides show the starfield, darkened to mark the bounds. | shots |
+| DES-1.1 | MUST | Responsive: playable at all aspect ratios, adapting on viewport change. | Portrait and square: the column is upright and fits across the screen, with a minimum world height visible ahead. Landscape (wider than 1.2:1): the world view turns a quarter turn so the column runs left to right across the full width, with text and UI kept upright (`src/render/camera.ts`). UI is laid out from the viewport size, and resizing (including a portrait ↔ landscape switch) keeps the game state. | unit (`tests/camera.test.ts`); shots (390×844, 844×390, 1280×720, 800×800, plus spot checks at 667×375, 1600×450 and 450×1600, and a live portrait → 900×420 resize in the prod smoke test) |
+| DES-1.2 | SHOULD | Fill the viewport. | Portrait phones and every landscape screen: the column fills the screen. Only near-square and very tall screens show starfield beside the column. | shots |
+| DES-1.2a | MUST | If not filling, centre with pillar/letterbox. | Where the column doesn't fill the screen, it's centred, and the sides show the starfield, darkened to mark the bounds. | shots |
 | DES-1.3 | MUST NOT | Lock orientation or posture. | No orientation lock anywhere. | code |
 | DES-1.4 | MUST | Keep state on resize. | `resize()` only updates the canvas and camera. | smoke (`prod-resized-900x420.png`) |
 | DES-2.1 | MUST | Touch input for everything. | Pointer Events: hold and release, the mode chip, retry, continue. | code; shots |
@@ -186,6 +186,33 @@ to the game-over screen.
 | A11Y-1.1 | SHOULD | Best effort toward WCAG AA. | One-button control, with no timing-critical text. Hazards differ from planets by shape (jagged, tumbling rocks; a black disc with swirling rings) and motion, not only colour. The pulsar's open and closed states differ by shape (solid vs. dotted ring) and blink slowly (≥ 1.9 s period, no strobing). Honours `prefers-reduced-motion` (no screen shake or twinkle). High-contrast HUD. | shots, code |
 | A11Y-2.1a | SHOULD | Add AGI accessibility tags in the listing. | Suggested tags are in `docs/APPLICATION.md`. | **portal** |
 | A11Y-2.1b | MUST NOT | Misrepresent the game with tags. | Only tags the game actually supports are suggested. | **portal** |
+
+## Still to verify inside YouTube
+
+Everything above marked "smoke" was checked against a **fake** SDK that records calls. Nothing
+has run against the real SDK, in Google's Playables test suite, or in the YouTube app on a phone.
+This can't be done from the build machine: the suite loads the game from a URL you host, and the
+device checks need real phones. Do this pass before applying, and record the results here.
+
+**In the Playables test suite** (linked from the SDK reference), with a production build
+(`npm run package`, or `dist/` from `npm run check:bundle`) served at a URL you control:
+
+- [ ] No console errors. `firstFrameReady` then `gameReady` both register, and the game is interactive.
+- [ ] `loadData` happens before any `saveData`. Play a run, reload, and check the best score survives.
+- [ ] Finish an endless run: `sendScore` reports the run score, and it matches the saved best.
+- [ ] Trigger pause: everything freezes and goes silent. Resume shows "tap to continue" and nothing moves until you tap.
+- [ ] Toggle audio off and on: off is fully silent, even mid-charge.
+- [ ] Set the language to German / French: title and HUD switch.
+- [ ] Resize the frame through portrait, square and landscape mid-run: the run continues and the world turns sideways in landscape.
+
+**On real phones in the YouTube app** (at least one recent iPhone and one mid-range Android):
+
+- [ ] Hold and release feel instant. There's no scroll, zoom, text selection or long-press menu.
+- [ ] Rotate the phone mid-run in both directions: the run continues, and landscape fills the screen with the column running left to right.
+- [ ] HUD text clears the notch and home indicator in portrait and in both landscape orientations.
+- [ ] A steady 60 fps late in a run (75 s+), with many bodies on screen.
+- [ ] Background the app mid-flight and come back: paused, "tap to continue", progress saved.
+- [ ] The mute switch, volume buttons and YouTube's audio setting are all respected. No sound before the first touch.
 
 ## SDK reference notes
 
