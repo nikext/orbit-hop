@@ -23,8 +23,11 @@ You are a small glowing probe orbiting a planet.
 
 ### Scoring
 - +100 per new planet captured.
-- **Combo:** a capture within 1.5 s of launching multiplies the next capture
-  (x2, x3, … up to x8). Combos reset on a slow hop.
+- **Combo:** a capture within 2.0 s of the previous capture (time spent
+  orbiting counts, not just the flight) multiplies the next capture (x2, x3,
+  … up to x8). Combos reset on a slow hop. The HUD's combo pill drains to
+  show the time left. (Changed from "1.5 s of launching" after bot tuning:
+  counting only flight time let ~77% of captures keep a combo by accident.)
 - **Near-miss bonus:** skimming within a small band of a planet's surface
   without crashing gives +25 and a sound and visual flourish.
 - **Stardust:** small pickups along slingshot paths, +10 each, which reward
@@ -111,7 +114,9 @@ differ from this spec, the official pages win; record the difference in
   English.
 - **Layout:** works at **any aspect ratio** (portrait phone, landscape
   desktop, square) and any resize. No orientation lock. Touch, mouse, and
-  keyboard all work. No hover-only UI.
+  keyboard all work. No hover-only UI. On landscape screens (wider than
+  1.2:1) the world view turns a quarter turn so the column runs left to right
+  and fills the screen; text and UI stay upright.
 - **Bundle:** initial load well under 1 MB (target under 300 KB gzipped);
   every file under 512 KiB; only relative paths (`vite` `base: './'`); file
   names `[A-Za-z0-9_.-]` only; no absolute URLs other than the SDK script.
