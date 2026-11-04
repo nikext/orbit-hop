@@ -91,18 +91,18 @@ export function pulseActive(b: Body, t: number): boolean {
 const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
 const clamp = (v: number, lo: number, hi: number) => (v < lo ? lo : v > hi ? hi : v);
 
-/** Difficulty 0..1 for a generation row. Rows 0-5 are a gentle on-ramp. */
+/** Difficulty 0..1 for a generation row. Rows 0-3 are a gentle on-ramp. */
 export function difficulty(row: number): number {
-  return clamp((row - 5) / 55, 0, 1);
+  return clamp((row - 3) / 36, 0, 1);
 }
 
 /** Row thresholds at which each feature starts appearing. */
 export const UNLOCK = {
-  moon: 6,
-  giant: 10,
-  belt: 15,
-  pulsar: 20,
-  hole: 26,
+  moon: 5,
+  giant: 8,
+  belt: 11,
+  pulsar: 15,
+  hole: 20,
 } as const;
 
 /**
@@ -206,7 +206,9 @@ export class Generator {
       capPad = lerp(54, 40, d) + rng.range(-3, 3);
     } else {
       r = row < 6 ? rng.range(30, 36) : rng.range(lerp(26, 20, d), lerp(36, 31, d));
-      capPad = lerp(42, 25, d) + rng.range(-3, 3);
+      capPad = lerp(38, 22, d) + rng.range(-3, 3);
+      // The first few hops are deliberately generous.
+      if (row <= 4) capPad += (5 - row) * 3;
     }
     const capR = r + capPad;
 
@@ -229,7 +231,7 @@ export class Generator {
     }
 
     // Vertical spacing: the gap between capture zones grows with difficulty.
-    const clear = lerp(70, 118, d) + rng.range(0, 30) + (belt ? 70 : 0) + (hole ? 90 : 0);
+    const clear = (row <= 3 ? 58 : lerp(78, 125, d)) + rng.range(0, 30) + (belt ? 70 : 0) + (hole ? 90 : 0);
     const need = this.lastExt + ext + clear;
     const dx = x - this.lastX;
     const dy = Math.sqrt(Math.max(need * need - dx * dx, 0));

@@ -9,9 +9,9 @@ export const HALF_W = WORLD_W / 2;
 /** How far past the column edge the probe may drift before the run ends. */
 export const SIDE_MARGIN = 34;
 /** The floor (bottom of the play area) trails this far below the current planet. */
-export const FLOOR_BELOW_ANCHOR = 290;
+export const FLOOR_BELOW_ANCHOR = 210;
 /** Generate bodies this far above the floor. */
-export const GEN_AHEAD = 1500;
+export const GEN_AHEAD = 2100;
 /** Bodies this far below the floor are recycled. */
 export const RECYCLE_BELOW = 260;
 
@@ -26,6 +26,8 @@ export const LAUNCH_MAX = 520;
 export const ORBIT_SPEED = 150;
 export const ORBIT_W_MIN = 1.7;
 export const ORBIT_W_MAX = 3.1;
+/** Orbit speed grows by up to this fraction with difficulty. */
+export const ORBIT_TEMPO = 0.25;
 
 export const FLIGHT_TIMEOUT_S = 6;
 

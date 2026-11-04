@@ -94,7 +94,7 @@ if (!isMainThread) {
     }
     const stuck = runs.filter((r) => r.stuck).length;
     console.log(`\n== ${profile} player bot, ${runs.length} seeds (cap ${maxSeconds}s) ==`);
-    console.log(`first death (s): p10 ${fmt(q(times, 0.1))}  median ${fmt(q(times, 0.5))}  p90 ${fmt(q(times, 0.9))}`);
+    console.log(`first death (s): p10 ${fmt(q(times, 0.1))}  median ${fmt(q(times, 0.5))}  p90 ${fmt(q(times, 0.9))}  max ${fmt(Math.max(...times))}`);
     console.log(`score:           p10 ${q(scores, 0.1)}  median ${q(scores, 0.5)}  p90 ${q(scores, 0.9)}  max ${Math.max(...scores)}`);
     console.log(`captures:        p10 ${q(caps, 0.1)}  median ${q(caps, 0.5)}  p90 ${q(caps, 0.9)}`);
     console.log(`height (km):     median ${fmt(q(runs.map((r) => r.height / 10), 0.5))}`);

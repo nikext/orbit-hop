@@ -12,6 +12,7 @@ import {
   LAUNCH_MIN,
   NEAR_MISS_BAND,
   ORBIT_SPEED,
+  ORBIT_TEMPO,
   ORBIT_W_MAX,
   ORBIT_W_MIN,
   POINTS_CAPTURE,
@@ -23,7 +24,7 @@ import {
   SIDE_MARGIN,
   TICK_HZ,
 } from './constants';
-import { type Body, type Dust, Generator, bodyVX, bodyVY, bodyX, bodyY, pulseActive } from './world';
+import { type Body, type Dust, Generator, bodyVX, bodyVY, bodyX, bodyY, difficulty, pulseActive } from './world';
 
 export type ProbeMode = 'orbit' | 'flight' | 'dead';
 export type DeathCause = 'crash' | 'rock' | 'hole' | 'out' | 'fall' | 'lost';
@@ -368,7 +369,9 @@ export class Sim {
     this.orbitDir = cross >= 0 ? 1 : -1;
     this.orbitR = Math.max(d, b.r + 12);
     this.orbitAngle = angle;
-    this.orbitW = this.orbitDir * clamp(ORBIT_SPEED / this.orbitR, ORBIT_W_MIN, ORBIT_W_MAX);
+    // Orbits speed up as the run gets harder: the main tempo lever.
+    const tempo = 1 + ORBIT_TEMPO * difficulty(b.row);
+    this.orbitW = this.orbitDir * clamp((ORBIT_SPEED * tempo) / this.orbitR, ORBIT_W_MIN, ORBIT_W_MAX * tempo);
     this.vx = 0;
     this.vy = 0;
 

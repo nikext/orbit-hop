@@ -150,9 +150,10 @@ describe('sim rules', () => {
 
 describe('generation', () => {
   it('has no impossible gaps: a search bot always reaches the next planet', () => {
-    for (let seed = 1; seed <= 10; seed++) {
-      const r = checkReachable(seed * 7919, 40);
-      expect({ seed, ...r }).toEqual({ seed, failedAtRow: -1, hops: 40 });
+    // npm run bot checks many more seeds and hops; this keeps the test suite quick.
+    for (let seed = 1; seed <= 6; seed++) {
+      const r = checkReachable(seed * 7919, 35);
+      expect({ seed, ...r }).toEqual({ seed, failedAtRow: -1, hops: 35 });
     }
   }, 120_000);
 });

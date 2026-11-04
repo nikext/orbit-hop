@@ -19,6 +19,8 @@ export interface SearchGrid {
   targetY: Float64Array;
   /** cy of the body the search started from. */
   startY: number;
+  /** Ticks skipped before the first wait cell. */
+  startWait: number;
 }
 
 export interface SearchOptions {
@@ -26,6 +28,8 @@ export interface SearchOptions {
   holdStep?: number;
   /** Give up on a flight after this many ticks. */
   maxFlightTicks?: number;
+  /** Only consider pressing after this many ticks (a human's reaction time). */
+  startWait?: number;
 }
 
 /** Ticks for one full revolution of the current orbit. */
@@ -75,6 +79,8 @@ export function search(sim: Sim, opts: SearchOptions = {}): SearchGrid {
 
   const base = sim.clone();
   base.recordEvents = false;
+  const startWait = opts.startWait ?? 0;
+  for (let i = 0; i < startWait; i++) base.step(false);
   for (let w = 0; w < waits; w++) {
     if (w > 0) for (let i = 0; i < waitStep; i++) base.step(false);
     // Hold incrementally: one clone keeps holding, and each checkpoint releases a copy.
@@ -89,37 +95,41 @@ export function search(sim: Sim, opts: SearchOptions = {}): SearchGrid {
       }
     }
   }
-  return { waitStep, holdStep, waits, holds, target, targetY, startY: sim.anchor.cy };
+  return { waitStep, holdStep, waits, holds, target, targetY, startY: sim.anchor.cy, startWait };
 }
 
 export interface BotProfile {
-  /** Std-dev of press timing error, ticks. */
+  /** Std-dev of press timing error, ticks (changes the charge). */
   pressNoise: number;
-  /** Std-dev of release timing error, ticks. */
+  /** Std-dev of release timing error, ticks (changes direction and charge). */
   releaseNoise: number;
   /** Minimum time a player spends in orbit before pressing, ticks. */
   minWait: number;
-  /** Half-size of the neighbourhood used to judge how forgiving a plan is. */
+  /** How many std-devs of press / release error the player guards against when picking a line. */
   robustW: number;
   robustH: number;
 }
 
-/** Roughly a first-session human on a phone. */
+/**
+ * Roughly a first-session human on a phone: ~65 ms timing jitter on both
+ * press and release, a reaction delay before pressing, and only a rough
+ * sense of which line is forgiving.
+ */
 export const NEW_PLAYER: BotProfile = {
-  pressNoise: 6,
-  releaseNoise: 6,
-  minWait: 30,
-  robustW: 2,
-  robustH: 2,
-};
-
-/** An expert who still has human timing. */
-export const GOOD_PLAYER: BotProfile = {
-  pressNoise: 3,
-  releaseNoise: 3,
-  minWait: 18,
+  pressNoise: 8,
+  releaseNoise: 8,
+  minWait: 36,
   robustW: 1,
   robustH: 1,
+};
+
+/** A practised player: ~35 ms jitter, and picks the most forgiving lines. */
+export const GOOD_PLAYER: BotProfile = {
+  pressNoise: 4,
+  releaseNoise: 4,
+  minWait: 18,
+  robustW: 2,
+  robustH: 2,
 };
 
 function gauss(rng: Rng): number {
@@ -160,15 +170,20 @@ export function choose(grid: SearchGrid, profile: BotProfile, rng: Rng): Choice 
       const i = w * holds + h;
       if (target[i]! < 0) continue;
       if (upOnly && targetY[i]! <= startY + 20) continue;
-      // Count successful neighbours (wrapping in wait: the orbit is periodic).
+      // How often does this plan still work under the player's timing noise?
+      // Press noise shifts the press (and so the charge); release noise shifts the release.
       let ok = 0;
       let tot = 0;
-      for (let dw = -profile.robustW; dw <= profile.robustW; dw++) {
-        const ww = (w + dw + waits) % waits;
-        for (let dh = -profile.robustH; dh <= profile.robustH; dh++) {
-          const hh = h + dh;
+      const a = profile.pressNoise * profile.robustW;
+      const r = profile.releaseNoise * profile.robustH;
+      const wait = w * grid.waitStep;
+      const hold = h * grid.holdStep;
+      for (const dp of a > 0 ? [-a, 0, a] : [0]) {
+        for (const dr of r > 0 ? [-r, -r / 2, 0, r / 2, r] : [0]) {
           tot++;
-          if (hh < 0 || hh >= holds) continue;
+          const ww = Math.round((wait + dp) / grid.waitStep);
+          const hh = Math.round((hold + dr - dp) / grid.holdStep);
+          if (ww < 0 || ww >= waits || hh < 0 || hh >= holds) continue;
           if (target[ww * holds + hh]! >= 0) ok++;
         }
       }
@@ -177,7 +192,7 @@ export function choose(grid: SearchGrid, profile: BotProfile, rng: Rng): Choice 
       const score = robustness + nearest + rng.next() * 0.05;
       if (score > bestScore) {
         bestScore = score;
-        best = { wait: w * grid.waitStep, hold: 1 + h * grid.holdStep, robustness };
+        best = { wait: grid.startWait + w * grid.waitStep, hold: 1 + h * grid.holdStep, robustness };
       }
     }
   }
@@ -206,18 +221,18 @@ export function playHuman(seed: number, profile: BotProfile, maxSeconds = 240, n
   const rng = new Rng(noiseSeed ^ seed);
   let stuck = false;
   while (sim.mode !== 'dead' && sim.time < maxSeconds) {
-    const grid = search(sim);
+    const grid = search(sim, { startWait: profile.minWait });
     const pick = choose(grid, profile, rng);
     if (!pick) {
       stuck = true;
       break;
     }
-    // Shift a full orbit later if the pick is too soon for a human to react.
-    const period = orbitPeriodTicks(sim);
-    let wait = pick.wait;
-    while (wait < profile.minWait) wait += period;
-    wait = Math.max(0, Math.round(wait + gauss(rng) * profile.pressNoise));
-    const hold = Math.max(1, Math.round(pick.hold + gauss(rng) * profile.releaseNoise));
+    // Players time the release against the preview (direction), and the
+    // press only sets how much charge has built up by then.
+    const press = Math.max(0, Math.round(pick.wait + gauss(rng) * profile.pressNoise));
+    const release = Math.round(pick.wait + pick.hold + gauss(rng) * profile.releaseNoise);
+    const wait = press;
+    const hold = Math.max(1, release - press);
     for (let i = 0; i < wait; i++) sim.step(false);
     for (let i = 0; i < hold; i++) sim.step(true);
     sim.step(false);
