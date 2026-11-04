@@ -1,7 +1,7 @@
 import { FLOOR_BELOW_ANCHOR, HALF_W, SIDE_MARGIN } from '../sim/constants';
 
 /** Minimum world height kept visible, so landscape screens still see what's ahead. */
-const MIN_VIEW_H = 640;
+const MIN_VIEW_H = 580;
 const VIEW_W = (HALF_W + SIDE_MARGIN) * 2 + 24;
 
 /**

@@ -65,7 +65,7 @@ export class WorldRenderer {
     const sy = (y: number) => cam.sy(y);
 
     this.stars.draw(g, cam.w, cam.h, cam.bottom * cam.scale, f.realTime, f.reducedMotion);
-    this.drawBounds(g, cam, sim);
+    this.drawBounds(g, cam);
 
     const top = cam.top + 120;
     const bottom = cam.bottom - 160;
@@ -140,7 +140,7 @@ export class WorldRenderer {
     return -1;
   }
 
-  private drawBounds(g: CanvasRenderingContext2D, cam: Camera, sim: Sim): void {
+  private drawBounds(g: CanvasRenderingContext2D, cam: Camera): void {
     const edge = HALF_W + SIDE_MARGIN;
     const lx = cam.sx(-edge);
     const rx = cam.sx(edge);
@@ -162,9 +162,10 @@ export class WorldRenderer {
       g.stroke();
     }
     g.restore();
-    // The floor: a faint red haze where the play area ends.
-    const fy = cam.sy(sim.floor);
-    if (fy < cam.h + 60) {
+    // The floor: a faint red haze along the bottom edge, where the play area ends.
+    // (The camera trails the floor, so the screen bottom is the floor once it settles.)
+    {
+      const fy = cam.h;
       const hh = 70 * cam.scale;
       const grad = g.createLinearGradient(0, fy - hh, 0, fy + 4);
       grad.addColorStop(0, rgba(DANGER, 0));
