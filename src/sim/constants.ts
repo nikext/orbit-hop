@@ -19,7 +19,7 @@ export const PROBE_R = 5;
 
 /** Charge reaches 1 after this many ticks of holding. */
 export const CHARGE_TICKS = 96;
-export const LAUNCH_MIN = 170;
+export const LAUNCH_MIN = 110;
 export const LAUNCH_MAX = 520;
 
 /** Tangential speed used to derive orbit angular velocity. */

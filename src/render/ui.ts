@@ -88,10 +88,14 @@ export class Ui {
     g.textAlign = 'center';
     g.textBaseline = 'middle';
 
-    if (s.screen === 'title') this.drawTitle(g, w, h, u, s);
-    else this.drawHud(g, w, h, u, s);
-    if (s.screen === 'over' && s.result) this.drawOver(g, w, h, u, s, s.result);
-    if (s.paused) this.drawPause(g, w, h, u, s);
+    if (s.paused) {
+      // Paused: only the pause overlay, so nothing else competes with it.
+      this.drawPause(g, w, h, u, s);
+    } else {
+      if (s.screen === 'title') this.drawTitle(g, w, h, u, s);
+      else this.drawHud(g, w, h, u, s);
+      if (s.screen === 'over' && s.result) this.drawOver(g, w, h, u, s, s.result);
+    }
     g.restore();
   }
 
@@ -280,7 +284,7 @@ export class Ui {
   }
 
   private drawPause(g: CanvasRenderingContext2D, w: number, h: number, u: number, s: UiState): void {
-    g.fillStyle = 'rgba(3,4,12,0.72)';
+    g.fillStyle = 'rgba(3,4,12,0.8)';
     g.fillRect(0, 0, w, h);
     // Pause glyph built from two bars (no text needed).
     const bw = 10 * u;

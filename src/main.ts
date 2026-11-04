@@ -155,7 +155,7 @@ function finishRun(): void {
     seconds: Math.round(st.playTicks / TICK_HZ),
   });
   save.settings.mode = mode;
-  if (rec.scored) platform.sendScore(sim.score);
+  if (rec.scored && sim.score > 0) platform.sendScore(sim.score);
   persist();
   result = {
     score: sim.score,
