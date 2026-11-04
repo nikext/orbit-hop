@@ -17,7 +17,7 @@ import { DUST, GOLD, PROBE_GLOW, UI } from './render/palette';
 import { PKind } from './render/particles';
 import { WorldRenderer } from './render/renderer';
 import { FONT, type RunResult, type Screen, Ui } from './render/ui';
-import { DT, TICK_HZ } from './sim/constants';
+import { COMBO_WINDOW_S, DT, TICK_HZ } from './sim/constants';
 import { hashString } from './sim/rng';
 import { Sim, type SimEvent } from './sim/sim';
 import { planetColors } from './render/palette';
@@ -387,6 +387,7 @@ function render(alpha: number): void {
     practice,
     score: sim.score,
     combo: sim.combo,
+    comboLeft: 1 - (sim.hopTicks + a) / (COMBO_WINDOW_S * TICK_HZ),
     best: save.best,
     screenT,
     realTime,

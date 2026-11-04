@@ -26,6 +26,8 @@ export interface UiState {
   score: number;
   /** Multiplier the next fast capture will get. */
   combo: number;
+  /** Share of the combo window still left for this hop, 1 → 0. At 0 the combo is lost. */
+  comboLeft: number;
   best: number;
   /** Seconds since the current screen was entered. */
   screenT: number;
@@ -197,17 +199,27 @@ export class Ui {
       this.text(g, label, w / 2, ly, 12 * u, 600, UI_DIM);
       ly += 24 * u;
     }
-    if (s.combo >= 2 && !s.idle) {
+    if (s.combo >= 2 && !s.idle && s.comboLeft > 0) {
       const str = `x${s.combo}`;
       const fs = 16 * u;
       g.font = `800 ${fs}px ${FONT}`;
-      const pw = g.measureText(str).width + 22 * u;
+      const pw = Math.max(g.measureText(str).width + 22 * u, 52 * u);
       const ph = 26 * u;
-      g.fillStyle = 'rgba(255,210,94,0.16)';
+      const px = w / 2 - pw / 2;
+      const py = ly - ph / 2;
+      // The pill drains as the combo window runs out, in orbit and in flight alike.
+      g.fillStyle = 'rgba(255,210,94,0.10)';
+      roundRect(g, px, py, pw, ph, ph / 2);
+      g.fill();
+      g.save();
+      roundRect(g, px, py, pw, ph, ph / 2);
+      g.clip();
+      g.fillStyle = 'rgba(255,210,94,0.32)';
+      g.fillRect(px, py, pw * clamp(s.comboLeft, 0, 1), ph);
+      g.restore();
       g.strokeStyle = 'rgba(255,210,94,0.85)';
       g.lineWidth = 1.5;
-      roundRect(g, w / 2 - pw / 2, ly - ph / 2, pw, ph, ph / 2);
-      g.fill();
+      roundRect(g, px, py, pw, ph, ph / 2);
       g.stroke();
       this.text(g, str, w / 2, ly + 1, fs, 800, GOLD);
     }

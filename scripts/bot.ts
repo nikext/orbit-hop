@@ -15,14 +15,14 @@
  */
 import { Worker, isMainThread, parentPort, workerData } from 'node:worker_threads';
 import { cpus } from 'node:os';
-import { GOOD_PLAYER, NEW_PLAYER, checkReachable, playHuman, type BotRun } from '../src/sim/bot';
+import { COMBO_CHASER, GOOD_PLAYER, NEW_PLAYER, checkReachable, playHuman, type BotRun } from '../src/sim/bot';
 
-type Job = { kind: 'play'; seed: number; profile: 'new' | 'good'; maxSeconds: number } | { kind: 'reach'; seed: number; hops: number };
+type Job = { kind: 'play'; seed: number; profile: 'new' | 'good' | 'chaser'; maxSeconds: number } | { kind: 'reach'; seed: number; hops: number };
 type Result = { kind: 'play'; profile: string; run: BotRun } | { kind: 'reach'; seed: number; failedAtRow: number; hops: number };
 
 function runJob(job: Job): Result {
   if (job.kind === 'play') {
-    const profile = job.profile === 'new' ? NEW_PLAYER : GOOD_PLAYER;
+    const profile = job.profile === 'new' ? NEW_PLAYER : job.profile === 'chaser' ? COMBO_CHASER : GOOD_PLAYER;
     return { kind: 'play', profile: job.profile, run: playHuman(job.seed, profile, job.maxSeconds) };
   }
   const r = checkReachable(job.seed, job.hops);
@@ -49,6 +49,7 @@ if (!isMainThread) {
   if (!has('--reach-only')) {
     for (let i = 0; i < seeds; i++) jobs.push({ kind: 'play', seed: 1000 + i * 7, profile: 'new', maxSeconds });
     if (!has('--new-only')) for (let i = 0; i < seeds; i++) jobs.push({ kind: 'play', seed: 1000 + i * 7, profile: 'good', maxSeconds });
+    if (!has('--new-only')) for (let i = 0; i < seeds; i++) jobs.push({ kind: 'play', seed: 1000 + i * 7, profile: 'chaser', maxSeconds });
   }
   if (!has('--play-only')) for (let i = 0; i < reachSeeds; i++) jobs.push({ kind: 'reach', seed: 50000 + i * 31, hops });
 
@@ -81,7 +82,7 @@ if (!isMainThread) {
   const fmt = (n: number) => (Number.isFinite(n) ? n.toFixed(1) : '-');
 
   let failed = false;
-  for (const profile of ['new', 'good']) {
+  for (const profile of ['new', 'good', 'chaser']) {
     const runs = results.filter((r): r is Extract<Result, { kind: 'play' }> => r.kind === 'play' && r.profile === profile).map((r) => r.run);
     if (!runs.length) continue;
     const times = runs.map((r) => r.time);
@@ -97,6 +98,13 @@ if (!isMainThread) {
     console.log(`first death (s): p10 ${fmt(q(times, 0.1))}  median ${fmt(q(times, 0.5))}  p90 ${fmt(q(times, 0.9))}  max ${fmt(Math.max(...times))}`);
     console.log(`score:           p10 ${q(scores, 0.1)}  median ${q(scores, 0.5)}  p90 ${q(scores, 0.9)}  max ${Math.max(...scores)}`);
     console.log(`captures:        p10 ${q(caps, 0.1)}  median ${q(caps, 0.5)}  p90 ${q(caps, 0.9)}`);
+    const capTotal = caps.reduce((a, b) => a + b, 0);
+    const comboCaps = runs.reduce((a, r) => a + r.comboCaptures, 0);
+    const bonus = runs.reduce((a, r) => a + r.comboBonus, 0);
+    const scoreTotal = scores.reduce((a, b) => a + b, 0);
+    console.log(
+      `combos:          ${fmt((100 * comboCaps) / Math.max(1, capTotal))}% of captures at x2+, ${fmt((100 * bonus) / Math.max(1, scoreTotal))}% of score from multipliers, max-combo median ${q(runs.map((r) => r.maxCombo), 0.5)}`,
+    );
     console.log(`height (km):     median ${fmt(q(runs.map((r) => r.height / 10), 0.5))}`);
     console.log(`end causes:      ${JSON.stringify(causes)}`);
     if (stuck) {

@@ -35,7 +35,7 @@ export const POINTS_CAPTURE = 100;
 export const POINTS_NEAR_MISS = 25;
 export const POINTS_DUST = 10;
 export const POINTS_SLINGSHOT = 250;
-export const COMBO_WINDOW_S = 1.5;
+export const COMBO_WINDOW_S = 2.0;
 export const COMBO_MAX = 8;
 
 /** A pass whose closest approach is within this band of a surface counts as a near miss. */

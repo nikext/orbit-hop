@@ -84,6 +84,11 @@ export class Sim {
   holding = false;
   holdTicks = 0;
   flightTicks = 0;
+  /**
+   * Ticks since the last capture (or since the first press of the run),
+   * counting time in orbit as well as in flight. The combo timer.
+   */
+  hopTicks = 0;
   launches = 0;
   /** Ids of bodies the probe is currently skimming (near-miss candidates). */
   skims: number[] = [];
@@ -122,6 +127,7 @@ export class Sim {
       this.holding = from.holding;
       this.holdTicks = from.holdTicks;
       this.flightTicks = from.flightTicks;
+      this.hopTicks = from.hopTicks;
       this.launches = from.launches;
       this.skims = from.skims.slice();
       this.ringHole = from.ringHole;
@@ -234,6 +240,8 @@ export class Sim {
     if (this.orbitAngle > Math.PI) this.orbitAngle -= Math.PI * 2;
     else if (this.orbitAngle < -Math.PI) this.orbitAngle += Math.PI * 2;
     this.placeOnOrbit();
+    // The combo clock runs while you orbit, once the run has started.
+    if (this.started) this.hopTicks++;
 
     if (held) {
       if (!this.holding) {
@@ -296,6 +304,7 @@ export class Sim {
     this.x += this.vx * DT;
     this.y += this.vy * DT;
     this.flightTicks++;
+    this.hopTicks++;
 
     const x = this.x;
     const y = this.y;
@@ -375,7 +384,9 @@ export class Sim {
     this.vx = 0;
     this.vy = 0;
 
-    const fast = this.flightTicks <= COMBO_WINDOW_S * TICK_HZ;
+    // A combo hop is the whole hop, from the last capture to this one: lingering in orbit breaks it.
+    const fast = this.hopTicks <= COMBO_WINDOW_S * TICK_HZ;
+    this.hopTicks = 0;
     if (!fast) this.combo = 1;
     const points = POINTS_CAPTURE * this.combo;
     this.score += points;

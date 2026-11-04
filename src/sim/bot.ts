@@ -1,4 +1,4 @@
-import { CHARGE_TICKS, TICK_HZ } from './constants';
+import { CHARGE_TICKS, POINTS_CAPTURE, TICK_HZ } from './constants';
 import { Rng } from './rng';
 import { Sim } from './sim';
 
@@ -108,6 +108,8 @@ export interface BotProfile {
   /** How many std-devs of press / release error the player guards against when picking a line. */
   robustW: number;
   robustH: number;
+  /** How much the player trades safety for an earlier launch (combo chasing). 0 = never hurries. */
+  hurry?: number;
 }
 
 /**
@@ -121,6 +123,16 @@ export const NEW_PLAYER: BotProfile = {
   minWait: 36,
   robustW: 1,
   robustH: 1,
+};
+
+/** A practised player who goes for combos: takes the earliest line that is still fairly safe. */
+export const COMBO_CHASER: BotProfile = {
+  pressNoise: 4,
+  releaseNoise: 4,
+  minWait: 18,
+  robustW: 2,
+  robustH: 2,
+  hurry: 1.2,
 };
 
 /** A practised player: ~35 ms jitter, and picks the most forgiving lines. */
@@ -189,7 +201,8 @@ export function choose(grid: SearchGrid, profile: BotProfile, rng: Rng): Choice 
       }
       const robustness = ok / tot;
       const nearest = targetY[i]! <= bestY + 1 ? 0.15 : 0;
-      const score = robustness + nearest + rng.next() * 0.05;
+      const hurry = (profile.hurry ?? 0) * (w / Math.max(1, waits));
+      const score = robustness + nearest - hurry + rng.next() * 0.05;
       if (score > bestScore) {
         bestScore = score;
         best = { wait: grid.startWait + w * grid.waitStep, hold: 1 + h * grid.holdStep, robustness };
@@ -209,6 +222,11 @@ export interface BotRun {
   cause: string | null;
   height: number;
   stuck: boolean;
+  /** Captures scored with a multiplier of x2 or more. */
+  comboCaptures: number;
+  /** Points from captures above the base x1 (what combos added). */
+  comboBonus: number;
+  maxCombo: number;
 }
 
 /**
@@ -220,6 +238,8 @@ export function playHuman(seed: number, profile: BotProfile, maxSeconds = 240, n
   sim.recordEvents = false;
   const rng = new Rng(noiseSeed ^ seed);
   let stuck = false;
+  let comboCaptures = 0;
+  let comboBonus = 0;
   while (sim.mode !== 'dead' && sim.time < maxSeconds) {
     const grid = search(sim, { startWait: profile.minWait });
     const pick = choose(grid, profile, rng);
@@ -233,10 +253,17 @@ export function playHuman(seed: number, profile: BotProfile, maxSeconds = 240, n
     const release = Math.round(pick.wait + pick.hold + gauss(rng) * profile.releaseNoise);
     const wait = press;
     const hold = Math.max(1, release - press);
+    const comboBefore = sim.combo;
+    const capsBefore = sim.stats.captures;
     for (let i = 0; i < wait; i++) sim.step(false);
     for (let i = 0; i < hold; i++) sim.step(true);
     sim.step(false);
     while (sim.mode === 'flight') sim.step(false);
+    // A fast capture leaves the combo at x2 or more; the multiplier it scored with is the one before.
+    if (sim.stats.captures > capsBefore && sim.combo >= 2 && comboBefore >= 2) {
+      comboCaptures++;
+      comboBonus += POINTS_CAPTURE * (comboBefore - 1);
+    }
   }
   return {
     seed,
@@ -247,6 +274,9 @@ export function playHuman(seed: number, profile: BotProfile, maxSeconds = 240, n
     cause: sim.deathCause,
     height: sim.stats.height,
     stuck,
+    comboCaptures,
+    comboBonus,
+    maxCombo: sim.stats.maxCombo,
   };
 }
 

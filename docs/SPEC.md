@@ -23,8 +23,11 @@ You are a small glowing probe orbiting a planet.
 
 ### Scoring
 - +100 per new planet captured.
-- **Combo:** a capture within 1.5 s of launching multiplies the next capture
-  (x2, x3, … up to x8). Combos reset on a slow hop.
+- **Combo:** a capture within 2.0 s of the previous capture (time spent
+  orbiting counts, not just the flight) multiplies the next capture (x2, x3,
+  … up to x8). Combos reset on a slow hop. The HUD's combo pill drains to
+  show the time left. (Changed from "1.5 s of launching" after bot tuning:
+  counting only flight time let ~77% of captures keep a combo by accident.)
 - **Near-miss bonus:** skimming within a small band of a planet's surface
   without crashing gives +25 and a sound and visual flourish.
 - **Stardust:** small pickups along slingshot paths, +10 each, which reward

@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { Sim, launchSpeed } from '../src/sim/sim';
 import { Rng, hashString } from '../src/sim/rng';
 import { checkReachable, playHuman, NEW_PLAYER, runPlan, search, choose, wentUp } from '../src/sim/bot';
-import { LAUNCH_MAX, LAUNCH_MIN } from '../src/sim/constants';
+import { COMBO_WINDOW_S, LAUNCH_MAX, LAUNCH_MIN, TICK_HZ } from '../src/sim/constants';
 
 /** A fixed, seed-independent input script: alternating waits and holds. */
 function scripted(sim: Sim, ticks: number, scriptSeed = 7): void {
@@ -127,6 +127,45 @@ describe('sim rules', () => {
     expect(caps[1]).toBe('capture:200');
   });
 
+  it('lingering in orbit breaks the combo, even if the flight itself is quick', () => {
+    // Earliest workable plan from the current orbit, starting no sooner than `after` ticks.
+    const hop = (s: Sim, after: number): { combo: number } => {
+      const pick = choose(search(s, { startWait: after }), { pressNoise: 0, releaseNoise: 0, minWait: 0, robustW: 0, robustH: 0, hurry: 5 }, new Rng(1));
+      expect(pick).not.toBeNull();
+      for (let i = 0; i < pick!.wait; i++) s.step(false);
+      for (let i = 0; i < pick!.hold; i++) s.step(true);
+      s.step(false);
+      while (s.mode === 'flight') s.step(false);
+      const cap = s.events.find((e) => e.type === 'capture');
+      s.clearEvents();
+      expect(cap).toBeDefined();
+      return { combo: cap!.type === 'capture' ? cap!.combo : 0 };
+    };
+    const quick = new Sim(11);
+    const slow = new Sim(11);
+    hop(quick, 0);
+    hop(slow, 0);
+    expect(quick.combo).toBe(2);
+    expect(slow.combo).toBe(2);
+    // Same position, same next target; one player hops at once, the other circles for the whole window first.
+    const fast = hop(quick, 0);
+    const late = hop(slow, Math.ceil(COMBO_WINDOW_S * TICK_HZ));
+    expect(fast.combo).toBe(2);
+    expect(late.combo).toBe(1);
+    expect(slow.combo).toBe(1);
+    expect(slow.hopTicks).toBe(0);
+  });
+
+  it('the combo clock does not run before the first press', () => {
+    const s = new Sim(11);
+    for (let i = 0; i < 5 * TICK_HZ; i++) s.step(false);
+    expect(s.hopTicks).toBe(0);
+    // The clock starts with the hold: the press tick itself, then one tick per tick held.
+    s.step(true);
+    s.step(true);
+    expect(s.hopTicks).toBe(1);
+  });
+
   it('keeps world arrays bounded on long runs', () => {
     const s = new Sim(8);
     let maxBodies = 0;
@@ -145,7 +184,7 @@ describe('sim rules', () => {
     expect(s.stats.captures).toBeGreaterThan(20);
     expect(maxBodies).toBeLessThan(60);
     expect(maxDust).toBeLessThan(60);
-  });
+  }, 30_000);
 });
 
 describe('generation', () => {

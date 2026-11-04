@@ -27,7 +27,7 @@ game is **~57 KiB (~21 KiB gzipped)** in two files.
 - **Core loop.** Orbit, charge, release tangentially, get captured by the next planet's zone.
   Capturing gives a short time-dilation, a ring burst, light screen shake, and a pentatonic chime
   that climbs with your combo.
-- **Scoring.** +100 per capture × combo (x2 … x8 for hops that land within 1.5 s of launch),
+- **Scoring.** +100 per capture × combo (x2 … x8 for hops that land within 2 s of the previous capture, orbit time included),
   +25 near miss, +10 stardust, +250 for surviving a black hole's slingshot ring.
 - **Variety, unlocked by distance.** Plain planets, then moons (moving targets), gas giants,
   asteroid belts, pulsars (a capture zone that opens and closes) and black holes (no capture,
