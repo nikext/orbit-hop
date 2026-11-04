@@ -205,6 +205,12 @@ export class Sim {
     out.vy = ty * s + bodyVY(this.anchor, this.time);
   }
 
+  /** Drop a charge in progress without launching (e.g. the game was paused mid-hold). */
+  cancelHold(): void {
+    this.holding = false;
+    this.holdTicks = 0;
+  }
+
   /** Advance one fixed tick. `held` is whether the launch input is down this tick. */
   step(held: boolean): void {
     if (this.mode === 'dead') {
